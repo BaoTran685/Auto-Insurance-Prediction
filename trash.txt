@@ -1,0 +1,37 @@
+def specificity(y_true, y_pred):
+    tp, fp, fn, tn = confusion_matrix(y_true, y_pred).T.ravel()
+    # print(tn / (tn + fp))
+    return tn / (tn + fp)
+
+specificity_scorer = make_scorer(specificity)
+
+def hyper_tune_random_forest(df_train):
+  X = df_train.drop("Claim over 1k", axis=1)
+  y = df_train["Claim over 1k"]
+  X_train_scaled, X_test_scaled, y_train, y_test = get_train_params(X, y, standard_scaler, 0.00001)
+  # Step 2: Define the model
+  rf_classifier = RandomForestClassifier(random_state=42)
+
+  # Step 3: Specify hyperparameters to tune
+  param_grid = {
+    'n_estimators': [100, 200],          # Number of trees
+    'max_depth': [20, 30, 40, 50],             # Maximum depth of the trees
+    'min_samples_split': [5, 10, 15],         # Minimum samples to split an internal node
+    'min_samples_leaf': [5, 10, 15],          # Minimum samples at a leaf node
+    'bootstrap': [False]
+  }
+
+  # Step 4: Set up GridSearchCV
+  grid_search = GridSearchCV(estimator=rf_classifier, param_grid=param_grid,
+                 cv=5, n_jobs=-1, verbose=2, scoring='f1')
+
+  # Step 5: Fit the model
+  grid_search.fit(X_train_scaled, y_train)
+
+  # Step 6: Evaluate the best model
+  best_model = grid_search.best_estimator_
+  
+  return best_model
+
+
+
